@@ -5,3 +5,4 @@ dotenv==0.9.9
 fastapi==0.115.12
 dependency-injector==4.46.0
 email-validator==2.2.0
+ujson==5.10.0

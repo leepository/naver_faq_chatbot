@@ -23,3 +23,12 @@ class ChatbotService:
 
         # Return result
         return response
+
+    def clear_chat_histories(self):
+        try:
+            self.handler.clear_chat_histories()
+            return True
+
+        except Exception as ex:
+            print('[EX] ChatbotService.clear_chat_histories : {ex}')
+            return False

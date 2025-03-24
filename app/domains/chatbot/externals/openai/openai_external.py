@@ -12,6 +12,7 @@ class OpenAIExternal(LLMExternal):
     def query(self, messages: List[dict]):
         response = self.openai_client.chat.completions.create(
             model=self.openai_model,
-            messages=messages
+            messages=messages,
+            response_format={'type': 'json_object'}
         )
         return response
