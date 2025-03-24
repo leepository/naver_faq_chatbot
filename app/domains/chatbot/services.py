@@ -9,14 +9,17 @@ class ChatbotService:
     def make_answer(self, data):
 
         # Retrieve documents
-        retrieved_docs = self.handler.retreive_documents(
+        retrieved_docs = self.handler.retrieve_documents(
             query=data.query,
             collection_name=self.collection_name,
             n_results=3
         )
-        print("retrieved_docs : ", retrieved_docs)
 
         # Query LLM
+        response = self.handler.query_to_llm(
+            query=data.query,
+            context=retrieved_docs['documents'][0]
+        )
 
         # Return result
-        return ""
+        return response
