@@ -3,7 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
+from app.container import Container
 from app.common.config import get_config
+from app.domains.domain_routers import domain_router
 from app.domains.index.apis import index_router
 from app.utils.common_utils import (
     get_api_env,
@@ -31,6 +33,9 @@ def create_app(api_env: str = None):
         swagger_ui_parameters={'persistAuthorization': True}
     )
 
+    container = Container()
+    app.container = container
+
     # Regist middleware
     app.add_middleware(
         TrustedHostMiddleware,
@@ -46,5 +51,6 @@ def create_app(api_env: str = None):
 
     # Regist routers
     app.include_router(index_router)
+    app.include_router(domain_router)
 
     return app
