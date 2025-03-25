@@ -15,4 +15,7 @@ class OpenAIExternal(LLMExternal):
             messages=messages,
             response_format={'type': 'json_object'}
         )
+
+        print("response : ", response)
+
         return response

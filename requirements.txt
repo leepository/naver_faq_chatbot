@@ -8,3 +8,6 @@ email-validator==2.2.0
 ujson==5.10.0
 streamlit==1.43.2
 sseclient==0.0.27
+pytest==8.3.5
+pytest-mock==3.14.0
+httpx==0.28.1
