@@ -1,4 +1,5 @@
 import ujson
+from datetime import datetime
 from app.domains.chatbot.handlers import ChatbotHandler
 
 class ChatbotService:
@@ -37,7 +38,19 @@ class ChatbotService:
         # Query LLM by stream
         stream = await self.handler.query_to_llm_stream(query=data.query, context=retrieved_docs['documents'][0])
 
+        # prepare stream for client
+        content = ""
         async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content += chunk.choices[0].delta.content
+            if chunk.choices[0].finish_reason == 'stop':
+                chat_history = {
+                    'user_query': data.query,
+                    'llm_response': content,
+                    'datetime': datetime.now()
+                }
+                self.handler.set_chat_history(state_data=chat_history)
+
             if await request.is_disconnected():
                 break
 
