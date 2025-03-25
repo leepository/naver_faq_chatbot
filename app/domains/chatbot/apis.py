@@ -1,5 +1,7 @@
 from dependency_injector.wiring import inject, Provide
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
+from starlette.requests import Request
 
 from app.container import Container
 from app.domains.chatbot.schemas import ChatbotRequest, ExecutionResponse
@@ -24,6 +26,29 @@ async def naver_faq_ask_api(
         'related_question': response['related_question']
     }
     return response_dict
+
+@chatbot_router.post(
+    name='Naver FAQ Stream query',
+    path='/chat'
+)
+@inject
+async def naver_faq_chat_api(
+        request: Request,
+        data: ChatbotRequest,
+        chatbot_service: ChatbotService = Depends(Provide[Container.chatbot_service])
+):
+    """ Naver FAQ 질문 API with stream """
+
+    return StreamingResponse(
+        chatbot_service.make_chat(request=request, data=data),
+        media_type="text/event-stream",
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*'
+        }
+    )
+
 
 
 @chatbot_router.delete(

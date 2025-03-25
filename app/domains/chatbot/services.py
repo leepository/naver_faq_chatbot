@@ -1,3 +1,4 @@
+import ujson
 from app.domains.chatbot.handlers import ChatbotHandler
 
 class ChatbotService:
@@ -23,6 +24,38 @@ class ChatbotService:
 
         # Return result
         return response
+
+    async def make_chat(self, request, data):
+
+        # Retrieve documents
+        retrieved_docs = self.handler.retrieve_documents(
+            query=data.query,
+            collection_name=self.collection_name,
+            n_results=3
+        )
+
+        # Query LLM by stream
+        stream = await self.handler.query_to_llm_stream(query=data.query, context=retrieved_docs['documents'][0])
+
+        async for chunk in stream:
+            if await request.is_disconnected():
+                break
+
+            # SSE 형식으로 포멧팅
+            chunk_data = ujson.dumps({
+                "id": chunk.id,
+                "model": chunk.model,
+                "choices": [{
+                    "delta": {
+                        "role": chunk.choices[0].delta.role if hasattr(chunk.choices[0].delta, "role") else None,
+                        "content": chunk.choices[0].delta.content if hasattr(chunk.choices[0].delta, "content") else None
+                    },
+                    "finish_reason": chunk.choices[0].finish_reason,
+                    "index": chunk.choices[0].index
+                }]
+            })
+
+            yield f"data: {chunk_data}\n\n"
 
     def clear_chat_histories(self):
         try:

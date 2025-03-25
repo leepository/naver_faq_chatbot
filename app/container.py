@@ -3,11 +3,13 @@ from dependency_injector import containers, providers
 from app.databases.chroma import ChromaManager
 from app.databases.internal import InternalState
 from app.domains.chatbot.externals.openai.openai_external import OpenAIExternal
+from app.domains.chatbot.externals.openai.openai_async_external import OpenAIAsyncExternal
 from app.domains.chatbot.handlers import ChatbotHandler
 from app.domains.chatbot.repositories.chroma.chroma_chatbot_repository import ChromaChatbotRepository
 from app.domains.chatbot.repositories.internal_state.internal_state_repository import InternalStateRepository
 from app.domains.chatbot.services import ChatbotService
 from app.llm.openai_manager import OpenAIManager
+from app.llm.openai_async_manager import OpenAIAsyncManager
 
 class Container(containers.DeclarativeContainer):
     wiring_config = containers.WiringConfiguration(modules=[
@@ -17,6 +19,7 @@ class Container(containers.DeclarativeContainer):
     # LLM
     openai_model = 'gpt-4o'
     openai_manager = providers.Singleton(OpenAIManager, model=openai_model)
+    openai_async_manager = providers.Singleton(OpenAIAsyncManager, model=openai_model)
 
     # DB
     chromadb_manager = providers.Singleton(ChromaManager)
@@ -28,12 +31,14 @@ class Container(containers.DeclarativeContainer):
 
     # External
     openai_external = providers.Singleton(OpenAIExternal, openai_manager=openai_manager)
+    openai_async_external = providers.Singleton(OpenAIAsyncExternal, openai_async_manager=openai_async_manager)
 
     # Handlers
     chatbot_handler = providers.Singleton(
         ChatbotHandler,
         chatbot_repository=chromadb_chatbot_repository,
         openai_external=openai_external,
+        openai_async_external=openai_async_external,
         internal_state_repository=internal_state_repository
     )
 
