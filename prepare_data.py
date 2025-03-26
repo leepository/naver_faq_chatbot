@@ -35,10 +35,10 @@ def get_or_create_chroma_collection(collection_name):
         model_name='text-embedding-3-large'
     )
 
-
     collection = client.get_or_create_collection(
         name='naver_faq',
-        embedding_function=embedding_function
+        embedding_function=embedding_function,
+        metadata={"hnsw:space": "cosine"}
     )
 
     return collection
@@ -138,12 +138,11 @@ def run():
         ids=ids
     )
 
+    print("##### TEST")
     # test
     query = "베스트 상품의 랭킹 기준은 무엇인가요?"
+
     retrieved_doc = naver_faq_collection.query(query_texts=query, n_results=5)
-
-    # print("retrieved_doc : ", retrieved_doc)
-
     openai_client = OpenAI()
     response = openai_client.chat.completions.create(
         model='gpt-4o',
@@ -160,10 +159,10 @@ def run():
             }
         ]
     )
-
+    print("query : ", query)
     print("response : ", response.choices[0].message.content)
 
-
+    print("##### Chromadb ready~!")
 
 if __name__ == "__main__":
     run()

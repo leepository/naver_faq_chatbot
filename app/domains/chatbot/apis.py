@@ -49,8 +49,6 @@ async def naver_faq_chat_api(
         }
     )
 
-
-
 @chatbot_router.delete(
     name="Chat history 삭제",
     path='/chat-histories',
@@ -66,4 +64,20 @@ async def delete_chat_histories_api(
         'result': response
     }
 
+    return response_dict
+
+@chatbot_router.delete(
+    name="Cache clear",
+    path="/cache-clear",
+    response_model=ExecutionResponse
+)
+@inject
+async def clear_cache_api(
+        chatbot_service: ChatbotService = Depends(Provide[Container.chatbot_service])
+):
+    """ 캐시 클리어 """
+    response = chatbot_service.clear_cache()
+    response_dict = {
+        'result': response
+    }
     return response_dict

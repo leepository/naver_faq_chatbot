@@ -22,3 +22,4 @@ class ChromaManager:
 
     def get_embedding_function(self):
         return self.embedding_function
+

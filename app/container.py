@@ -4,7 +4,12 @@ from app.databases.chroma import ChromaManager
 from app.databases.internal import InternalState
 from app.domains.chatbot.externals.openai.openai_external import OpenAIExternal
 from app.domains.chatbot.externals.openai.openai_async_external import OpenAIAsyncExternal
-from app.domains.chatbot.handlers import ChatbotHandler
+from app.domains.chatbot.handlers import (
+    CacheHandler,
+    LLMHandler,
+    StateHandler,
+    VectorDBHandler
+)
 from app.domains.chatbot.repositories.chroma.chroma_chatbot_repository import ChromaChatbotRepository
 from app.domains.chatbot.repositories.internal_state.internal_state_repository import InternalStateRepository
 from app.domains.chatbot.services import ChatbotService
@@ -34,13 +39,16 @@ class Container(containers.DeclarativeContainer):
     openai_async_external = providers.Singleton(OpenAIAsyncExternal, openai_async_manager=openai_async_manager)
 
     # Handlers
-    chatbot_handler = providers.Singleton(
-        ChatbotHandler,
-        chatbot_repository=chromadb_chatbot_repository,
-        openai_external=openai_external,
-        openai_async_external=openai_async_external,
-        internal_state_repository=internal_state_repository
-    )
+    cache_handler = providers.Singleton(CacheHandler, cache_repository=chromadb_chatbot_repository)
+    llm_handler = providers.Singleton(LLMHandler, llm_external=openai_external, llm_async_external=openai_async_external)
+    state_handler = providers.Singleton(StateHandler, state_repository=internal_state_repository)
+    vectordb_handler = providers.Singleton(VectorDBHandler, chatbot_repository=chromadb_chatbot_repository)
 
     # services
-    chatbot_service = providers.Singleton(ChatbotService, chatbot_handler=chatbot_handler)
+    chatbot_service = providers.Singleton(
+        ChatbotService,
+        cache_handler=cache_handler,
+        llm_handler=llm_handler,
+        state_handler=state_handler,
+        vectordb_handler=vectordb_handler
+    )

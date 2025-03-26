@@ -7,7 +7,7 @@ from queue import Queue
 import traceback
 
 # Set page config
-st.set_page_config(page_title="SSE Chatbot", layout="wide")
+st.set_page_config(page_title="Naver smartstore FAQ", layout="wide")
 
 # Initialize session state for chat history if it doesn't exist
 if "messages" not in st.session_state:
@@ -83,7 +83,7 @@ def process_sse_stream(url, payload, message_queue):
 
 
 # Page title
-st.title("💬 Chatbot with SSE")
+st.title("💬 Naver smartstore FAQ")
 
 # Display chat messages from history
 for message in st.session_state.messages:

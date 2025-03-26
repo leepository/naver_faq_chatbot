@@ -1,5 +1,9 @@
+import asyncio
 import os
 import time
+import uuid
+
+from typing import List, AsyncIterator
 
 def get_api_env():
     """
@@ -15,3 +19,15 @@ def get_ttl_hash(seconds=864000):
     :return:
     """
     return round(time.time() / seconds)
+
+def get_uuid():
+    """
+    UUID 생성
+    :return:
+    """
+    return str(uuid.uuid4())
+
+async def async_list_iterator(items: List[str]) -> AsyncIterator[str]:
+    for item in items:
+        await asyncio.sleep(0.1)
+        yield item

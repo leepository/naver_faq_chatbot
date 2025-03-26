@@ -7,5 +7,5 @@ class VectordbRepository(ABC):
         pass
 
     @abstractmethod
-    def retrieve_documents(self, query: str, collection_name: str, n_result: int):
+    def retrieve_documents(self, query: str, collection_name: str, n_results: int):
         pass
