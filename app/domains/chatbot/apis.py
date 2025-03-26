@@ -22,8 +22,7 @@ async def naver_faq_ask_api(
     response = chatbot_service.make_answer(data=data)
     response_dict = {
         'answer': response['answer'],
-        'questions': response['questions'],
-        'related_question': response['related_question']
+        'questions': response['questions']
     }
     return response_dict
 

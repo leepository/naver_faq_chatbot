@@ -4,7 +4,7 @@ from typing import List
 class CacheRepository(ABC):
 
     @abstractmethod
-    def add_cache(self, collection_name: str, user_query: str, llm_response: str):
+    def add_cache(self, collection_name: str, user_query: str, metadata: dict):
         pass
 
     @abstractmethod

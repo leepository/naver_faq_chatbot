@@ -28,30 +28,69 @@ class ChatbotService:
         self.cache_collection_name = 'query_cache'
 
     def make_answer(self, data):
-
-        # Retrieve documents
-        retrieved_docs = self.vectordb_handler.retrieve_documents(
-            query=data.query,
-            collection_name=self.collection_name,
-            n_results=3
-        )
-
-        # Query LLM
-        response = self.llm_handler.query_to_llm(
-            query=data.query,
-            context=retrieved_docs['documents'][0]
-        )
-
-        # Return result
-        return response
-
-    async def make_chat(self, request, data):
-
+        """
+        JSON 방식의 응답
+        :param data:
+        :return:
+        """
         # Check query cache
         caches = self.cache_handler.search_cache(
             query=data.query,
             collection_name=self.cache_collection_name
         )
+
+        if caches is not None:
+            cached_response = caches['metadatas'][0][0]
+            return {
+                "answer": cached_response['llm_response'],
+                "questions": cached_response['questions'].split("|") if 'questions' in cached_response else None
+            }
+        else:
+            # Retrieve documents
+            retrieved_docs = self.vectordb_handler.retrieve_documents(
+                query=data.query,
+                collection_name=self.collection_name,
+                n_results=3
+            )
+
+            # Get chat histories
+            chat_histories = self.state_handler.get_chat_histories()
+
+            # Query LLM
+            response = self.llm_handler.query_to_llm(
+                query=data.query,
+                context=retrieved_docs['documents'][0],
+                histories=chat_histories
+            )
+
+            # Chat history 저장
+            chat_history = {
+                'user_query': data.query,
+                'llm_response': response['answer'],
+                'datetime': datetime.now()
+            }
+            self.state_handler.set_chat_history(state_data=chat_history)
+
+            # User query caching
+            chat_history.update({'questions': "|".join(response['questions'])})
+            self.cache_handler.set_cache(collection_name=self.cache_collection_name, data=chat_history)
+
+            # Return result
+            return response
+
+    async def make_chat(self, request, data):
+        """
+        SSE 방식의 응답
+        :param request:
+        :param data:
+        :return:
+        """
+        # Check query cache
+        caches = self.cache_handler.search_cache(
+            query=data.query,
+            collection_name=self.cache_collection_name
+        )
+
         if caches is not None:
             cached_response = caches['metadatas'][0][0]['llm_response']
             id = caches['ids'][0]

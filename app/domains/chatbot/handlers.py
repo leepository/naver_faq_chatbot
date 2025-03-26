@@ -25,8 +25,8 @@ class StateHandler:
         self.state_repository = state_repository
 
     def get_chat_histories(self):
-        raw = self.state_repository.get_state()
-        histories = sorted(raw, key=lambda x: x['datetime'], reverse=True)
+        raws = self.state_repository.get_state()
+        histories = sorted(raws, key=lambda x: x['datetime'], reverse=True) if len(raws) > 0 else []
         return histories
 
     def set_chat_history(self, state_data):
@@ -122,7 +122,10 @@ class CacheHandler:
         self.cache_repository.add_cache(
             collection_name=collection_name,
             user_query=data['user_query'],
-            llm_response=data['llm_response']
+            metadata={
+                "llm_response": data['llm_response'],
+                "questions": data['questions'] if 'questions' in data else None
+            }
         )
 
     def search_cache(self, collection_name: str, query: str):
