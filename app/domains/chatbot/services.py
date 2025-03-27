@@ -70,11 +70,12 @@ class ChatbotService:
 
             # Reform user query
             reform_result = self.llm_handler.query_to_reform(query=data.query, histories=chat_histories)
-            reformed_query = ujson.loads(reform_result)['user_question']
+            reform_json = ujson.loads(reform_result)
+            reformed_query = reform_json['user_question'] if 'user_question' in reform_json and reform_json is not None else None
 
             # Query LLM
             response = self.llm_handler.query_to_llm(
-                query=reformed_query,
+                query=reformed_query if reformed_query is not None else data.query,
                 context=retrieved_docs['documents'][0],
                 histories=chat_histories
             )
@@ -168,7 +169,11 @@ class ChatbotService:
                         reformed_query += chunk.choices[0].delta.content
 
                 # Query LLM by stream
-                stream = await self.llm_handler.query_to_llm_stream(query=reformed_query, context=retrieved_docs['documents'][0], histories=chat_histories)
+                stream = await self.llm_handler.query_to_llm_stream(
+                    query=reformed_query if reformed_query.strip() != "" else data.query,
+                    context=retrieved_docs['documents'][0],
+                    histories=chat_histories
+                )
 
                 # prepare stream for client
                 content = ""
