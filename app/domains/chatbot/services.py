@@ -95,6 +95,16 @@ class ChatbotService:
 
         if caches is not None:
             cached_response = caches['metadatas'][0][0]['llm_response']
+
+            chat_history = {
+                'user_query': data.query,
+                'llm_response': cached_response,
+                'datetime': datetime.now()
+            }
+            # Chat history 저장
+            self.state_handler.set_chat_history(state_data=chat_history)
+
+            # Client에 stream 응답
             id = caches['ids'][0]
             stream_response = [ujson.dumps({
                 "id": id,
@@ -136,8 +146,15 @@ class ChatbotService:
                 # Get chat histories
                 chat_histories = self.state_handler.get_chat_histories()
 
+                # Reform user query
+                reform_stream = await self.llm_handler.query_to_reform(query=data.query, histories=chat_histories)
+                reformed_query = ""
+                async for chunk in reform_stream:
+                    if chunk.choices[0].delta.content is not None:
+                        reformed_query += chunk.choices[0].delta.content
+
                 # Query LLM by stream
-                stream = await self.llm_handler.query_to_llm_stream(query=data.query, context=retrieved_docs['documents'][0], histories=chat_histories)
+                stream = await self.llm_handler.query_to_llm_stream(query=reformed_query, context=retrieved_docs['documents'][0], histories=chat_histories)
 
                 # prepare stream for client
                 content = ""
@@ -158,10 +175,8 @@ class ChatbotService:
                     elif chunk.choices[0].finish_reason == 'length':
                         raise LLMLengthOverError
 
-
                     if await request.is_disconnected():
                         break
-
 
                     # SSE 형식으로 포멧팅
                     chunk_data = ujson.dumps({

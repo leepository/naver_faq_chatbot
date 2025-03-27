@@ -72,4 +72,5 @@ class ChromaChatbotRepository(VectordbRepository, CacheRepository):
     def clear_cache(self, collection_name: str):
         collection = self.get_collection(collection_name=collection_name)
         ids = collection.get()['ids']
-        collection.delete(ids=ids)
+        if len(ids) > 0:
+            collection.delete(ids=ids)

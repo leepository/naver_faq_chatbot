@@ -10,7 +10,7 @@ class InternalStateRepository(StateRepository):
         self.state.histories.append(state_data)
 
     def get_state(self):
-        return self.state.histories
+        return self.state.histories[:1]
 
     def clear_state(self):
         self.state.histories = []
