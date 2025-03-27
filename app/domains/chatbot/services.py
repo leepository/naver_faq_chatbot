@@ -43,6 +43,16 @@ class ChatbotService:
 
         if caches is not None:
             cached_response = caches['metadatas'][0][0]
+
+            chat_history = {
+                'user_query': data.query,
+                'llm_response': cached_response['llm_response'],
+                'questions': cached_response['questions'],
+                'datetime': datetime.now()
+            }
+            # Chat history 저장
+            self.state_handler.set_chat_history(state_data=chat_history)
+
             return {
                 "answer": cached_response['llm_response'],
                 "questions": cached_response['questions'].split("|") if 'questions' in cached_response else None
@@ -58,9 +68,13 @@ class ChatbotService:
             # Get chat histories
             chat_histories = self.state_handler.get_chat_histories()
 
+            # Reform user query
+            reform_result = self.llm_handler.query_to_reform(query=data.query, histories=chat_histories)
+            reformed_query = ujson.loads(reform_result)['user_question']
+
             # Query LLM
             response = self.llm_handler.query_to_llm(
-                query=data.query,
+                query=reformed_query,
                 context=retrieved_docs['documents'][0],
                 histories=chat_histories
             )
@@ -147,7 +161,7 @@ class ChatbotService:
                 chat_histories = self.state_handler.get_chat_histories()
 
                 # Reform user query
-                reform_stream = await self.llm_handler.query_to_reform(query=data.query, histories=chat_histories)
+                reform_stream = await self.llm_handler.query_to_reform_stream(query=data.query, histories=chat_histories)
                 reformed_query = ""
                 async for chunk in reform_stream:
                     if chunk.choices[0].delta.content is not None:
