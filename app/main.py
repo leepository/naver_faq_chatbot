@@ -8,6 +8,7 @@ from app.container import Container
 from app.common.config import get_config
 from app.domains.domain_routers import domain_router
 from app.domains.index.apis import index_router
+from app.middlewares.access_control_middelware import AccessControl
 from app.utils.common_utils import (
     get_api_env,
     get_ttl_hash
@@ -49,6 +50,7 @@ def create_app(api_env: str = None):
         allow_methods=["*"],
         allow_headers=["*"]
     )
+    app.add_middleware(AccessControl)
 
     # Regist routers
     app.include_router(index_router)

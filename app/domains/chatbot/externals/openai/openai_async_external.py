@@ -13,6 +13,8 @@ class OpenAIAsyncExternal(LLMExternal):
         response = await self.openai_client.chat.completions.create(
             model=self.openai_model,
             messages=messages,
-            stream=True
+            stream=True,
+            max_tokens=1000,
+            temperature=0.5
         )
         return response

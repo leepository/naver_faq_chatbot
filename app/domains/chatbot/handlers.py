@@ -124,7 +124,7 @@ class CacheHandler:
             user_query=data['user_query'],
             metadata={
                 "llm_response": data['llm_response'],
-                "questions": data['questions'] if 'questions' in data else None
+                "questions": data['questions'] if 'questions' in data else ''
             }
         )
 

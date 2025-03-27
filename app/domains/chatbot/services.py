@@ -2,13 +2,15 @@ import asyncio
 import ujson
 from datetime import datetime
 
+from app.common.exceptions import APIException, exception_handler
 from app.domains.chatbot.handlers import (
     VectorDBHandler,
     StateHandler,
     LLMHandler,
     CacheHandler
 )
-from app.utils.common_utils import async_list_iterator
+from app.domains.chatbot.exceptions import LLMLengthOverError
+from app.utils.log_utils import api_logger
 
 class ChatbotService:
 
@@ -123,53 +125,82 @@ class ChatbotService:
                 yield f"data: {chunk}\n\n"
 
         else:
-            # Retrieve documents
-            retrieved_docs = self.vectordb_handler.retrieve_documents(
-                query=data.query,
-                collection_name=self.collection_name,
-                n_results=3
-            )
+            try:
+                # Retrieve documents
+                retrieved_docs = self.vectordb_handler.retrieve_documents(
+                    query=data.query,
+                    collection_name=self.collection_name,
+                    n_results=3
+                )
 
-            # Get chat histories
-            chat_histories = self.state_handler.get_chat_histories()
+                # Get chat histories
+                chat_histories = self.state_handler.get_chat_histories()
 
-            # Query LLM by stream
-            stream = await self.llm_handler.query_to_llm_stream(query=data.query, context=retrieved_docs['documents'][0], histories=chat_histories)
+                # Query LLM by stream
+                stream = await self.llm_handler.query_to_llm_stream(query=data.query, context=retrieved_docs['documents'][0], histories=chat_histories)
 
-            # prepare stream for client
-            content = ""
-            async for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    content += chunk.choices[0].delta.content
-                if chunk.choices[0].finish_reason == 'stop':
-                    chat_history = {
-                        'user_query': data.query,
-                        'llm_response': content,
-                        'datetime': datetime.now()
-                    }
-                    # Chat history 저장
-                    self.state_handler.set_chat_history(state_data=chat_history)
-                    # User query caching
-                    self.cache_handler.set_cache(collection_name=self.cache_collection_name, data=chat_history)
+                # prepare stream for client
+                content = ""
+                async for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        content += chunk.choices[0].delta.content
+                    if chunk.choices[0].finish_reason == 'stop':
+                        chat_history = {
+                            'user_query': data.query,
+                            'llm_response': content,
+                            'datetime': datetime.now()
+                        }
+                        # Chat history 저장
+                        self.state_handler.set_chat_history(state_data=chat_history)
+                        # User query caching
+                        self.cache_handler.set_cache(collection_name=self.cache_collection_name, data=chat_history)
 
-                if await request.is_disconnected():
-                    break
+                    elif chunk.choices[0].finish_reason == 'length':
+                        raise LLMLengthOverError
 
-                # SSE 형식으로 포멧팅
-                chunk_data = ujson.dumps({
-                    "id": chunk.id,
-                    "model": chunk.model,
-                    "choices": [{
-                        "delta": {
-                            "role": chunk.choices[0].delta.role if hasattr(chunk.choices[0].delta, "role") else None,
-                            "content": chunk.choices[0].delta.content if hasattr(chunk.choices[0].delta, "content") else None
-                        },
-                        "finish_reason": chunk.choices[0].finish_reason,
-                        "index": chunk.choices[0].index
-                    }]
-                })
 
-                yield f"data: {chunk_data}\n\n"
+                    if await request.is_disconnected():
+                        break
+
+
+                    # SSE 형식으로 포멧팅
+                    chunk_data = ujson.dumps({
+                        "id": chunk.id,
+                        "model": chunk.model,
+                        "choices": [{
+                            "delta": {
+                                "role": chunk.choices[0].delta.role if hasattr(chunk.choices[0].delta, "role") else None,
+                                "content": chunk.choices[0].delta.content if hasattr(chunk.choices[0].delta, "content") else None
+                            },
+                            "finish_reason": chunk.choices[0].finish_reason,
+                            "index": chunk.choices[0].index
+                        }]
+                    })
+
+                    yield f"data: {chunk_data}\n\n"
+
+            except Exception as ex:
+                message_list = ['\n\n', '죄송합니다. 현재 답변을 생성할 수 없습니다.', '']
+                exception_response = []
+                for msg in message_list:
+                    exception_response.append(ujson.dumps({
+                        "id": 'Exception',
+                        "model": 'cache',
+                        "choices": [{
+                            "delta": {
+                                "role": None,
+                                "content": msg
+                            },
+                            "finish_reason": '' if msg != '' else 'stop',
+                            "index": 0
+                        }]
+                    }))
+                for chunk in exception_response:
+                    await asyncio.sleep(0.008)
+                    yield f"data: {chunk}\n\n"
+
+                error = await exception_handler(ex) if type(ex) is not APIException else ex
+                await api_logger(request=request, error=error)
 
     def clear_chat_histories(self):
         try:

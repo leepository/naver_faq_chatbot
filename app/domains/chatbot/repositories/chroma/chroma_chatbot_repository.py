@@ -28,7 +28,6 @@ class ChromaChatbotRepository(VectordbRepository, CacheRepository):
         return result
 
     def add_cache(self, collection_name: str, user_query: str, metadata: dict):
-        print('metadata : ', metadata)
         collection = self.get_collection(collection_name=collection_name)
         doc_id = get_uuid()
         collection.add(
