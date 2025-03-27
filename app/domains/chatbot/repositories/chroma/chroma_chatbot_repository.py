@@ -21,10 +21,32 @@ class ChromaChatbotRepository(VectordbRepository, CacheRepository):
 
     def retrieve_documents(self, query: str, collection_name: str, n_results: int):
         collection = self.get_collection(collection_name=collection_name)
-        result = collection.query(
-            query_texts=[query],
-            n_results=n_results
-        )
+        try:
+            result = collection.query(
+                query_texts=[query],
+                n_results=n_results
+            )
+
+            # Check if results are empty
+            if not result or all(len(results) == 0 for results in result.values()):
+                return {
+                    "ids": [[]],
+                    "distances": [[]],
+                    "metadatas": [[]],
+                    "embeddings": [[]],
+                    "documents": [[]]
+                }
+
+        except Exception as ex:
+            print(f"Chromadb query error : {ex}")
+            return {
+                "ids": [[]],
+                "distances": [[]],
+                "metadatas": [[]],
+                "embeddings": [[]],
+                "documents": [[]]
+            }
+
         return result
 
     def add_cache(self, collection_name: str, user_query: str, metadata: dict):
